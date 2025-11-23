@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>My AI Chatbot</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Google Font (optional) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#020617">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: "Poppins", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+            background: radial-gradient(circle at top, #1f2933 0, #020617 45%, #000000 100%);
+            color: #e5e7eb;
+            min-height: 100vh;
+        }
+
+        .page {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 24px 16px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .brand-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .nav-pill {
+            padding: 6px 14px;
+            border-radius: 999px;
+            border: 1px solid rgba(168, 85, 247, 0.7);
+            text-decoration: none;
+            font-size: 0.9rem;
+            color: #a855f7;
+            background: rgba(15, 23, 42, 0.9);
+            box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.7);
+            transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.1s;
+        }
+
+        .nav-pill:hover {
+            background: rgba(88, 28, 135, 0.9);
+            color: #f9fafb;
+            border-color: rgba(233, 213, 255, 0.8);
+            transform: translateY(-1px);
+        }
+
+        .app-wrapper {
+            width: 100%;
+            max-width: 900px;
+            padding: 16px;
+        }
+
+        .card {
+            background: rgba(15, 23, 42, 0.9);
+            border-radius: 24px;
+            padding: 20px 20px 14px;
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            backdrop-filter: blur(18px);
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 120px);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+        }
+
+        .bot-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #4f46e5, #06b6d4);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        .header-text-main {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .header-text-sub {
+            font-size: 12px;
+            color: #9ca3af;
+        }
+
+        .status-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 999px;
+            background: #22c55e;
+            box-shadow: 0 0 12px #16a34a;
+        }
+
+        .card-body {
+            flex: 1;
+            margin-top: 12px;
+            padding: 10px 12px;
+            background: rgba(15, 23, 42, 0.9);
+            border-radius: 18px;
+            border: 1px solid rgba(148, 163, 184, 0.5);
+            overflow-y: auto;
+        }
+
+        .card-body::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .card-body::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.7);
+            border-radius: 999px;
+        }
+
+        .message-row {
+            display: flex;
+            margin-bottom: 10px;
+            max-width: 100%;
+        }
+
+        .message-row.user {
+            justify-content: flex-end;
+        }
+
+        .message-row.bot {
+            justify-content: flex-start;
+        }
+
+        .bubble {
+            border-radius: 16px;
+            padding: 10px 12px 6px;
+            font-size: 14px;
+            line-height: 1.5;
+            max-width: 90%;
+            position: relative;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+        }
+
+        .bubble.user {
+            background: linear-gradient(135deg, #3b82f6, #6366f1);
+            color: #f9fafb;
+            border-bottom-right-radius: 4px;
+        }
+
+        .bubble.bot {
+            background: rgba(15, 23, 42, 0.95);
+            color: #e5e7eb;
+            border: 1px solid rgba(148, 163, 184, 0.4);
+            border-bottom-left-radius: 4px;
+        }
+
+        .bubble-meta {
+            margin-top: 4px;
+            font-size: 11px;
+            color: #9ca3af;
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .typing-indicator {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .typing-dots span {
+            width: 6px;
+            height: 6px;
+            border-radius: 999px;
+            background: #9ca3af;
+            animation: blink 1.2s infinite ease-in-out;
+        }
+
+        .typing-dots span:nth-child(2) {
+            animation-delay: 0.15s;
+        }
+
+        .typing-dots span:nth-child(3) {
+            animation-delay: 0.3s;
+        }
+
+        @keyframes blink {
+            0%, 80%, 100% { opacity: 0.2; transform: translateY(0px); }
+            40% { opacity: 1; transform: translateY(-2px); }
+        }
+
+        .card-footer {
+            padding-top: 10px;
+            border-top: 1px solid rgba(148, 163, 184, 0.3);
+        }
+
+        .input-row {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        .text-area-wrap {
+            flex: 1;
+        }
+
+        textarea {
+            width: 100%;
+            resize: none;
+            min-height: 52px;
+            max-height: 120px;
+            padding: 10px 12px;
+            border-radius: 14px;
+            border: 1px solid rgba(148, 163, 184, 0.6);
+            background: rgba(15, 23, 42, 0.95);
+            color: #f9fafb;
+            font-size: 14px;
+            font-family: inherit;
+            outline: none;
+        }
+
+        textarea::placeholder {
+            color: #6b7280;
+        }
+
+        textarea:focus {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 1px rgba(79, 70, 229, 0.4);
+        }
+
+        .helper-text {
+            margin-top: 4px;
+            font-size: 11px;
+            color: #9ca3af;
+        }
+
+        button#send-btn {
+            border: none;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #3b82f6, #6366f1);
+            color: white;
+            padding: 10px 18px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 10px 25px rgba(37, 99, 235, 0.45);
+            transition: transform 0.12s ease-out, box-shadow 0.12s ease-out,
+                        opacity 0.1s ease-out, filter 0.1s ease-out;
+        }
+
+        button#send-btn:disabled {
+            opacity: 0.6;
+            cursor: default;
+            box-shadow: none;
+            filter: grayscale(0.1);
+        }
+
+        button#send-btn:not(:disabled):hover {
+            transform: translateY(-1px);
+            box-shadow: 0 16px 30px rgba(37, 99, 235, 0.6);
+        }
+
+        .send-icon {
+            font-size: 12px;
+        }
+
+        @media (max-width: 640px) {
+            .card {
+                height: 90vh;
+                padding: 16px 14px 10px;
+                border-radius: 18px;
+            }
+            .header-text-main {
+                font-size: 14px;
+            }
+            .bubble {
+                max-width: 85%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <div class="top-bar">
+            <div class="brand-title">AI Assistant</div>
+            <a href="/notes" class="nav-pill">Saved Notes / Reminders</a>
+        </div>
+
+        <div class="app-wrapper">
+            <div class="card">
+            <!-- HEADER -->
+            <div class="card-header">
+                <div class="bot-avatar">AI</div>
+                <div style="flex:1">
+                    <div class="header-text-main">Your Study/Helper Bot</div>
+                    <div class="header-text-sub">
+                        දේවල් explain කරන, code help දෙන, කියවලා දෙන smart buddy ❤️
+                    </div>
+                </div>
+                <div class="status-row">
+                    <div class="status-dot"></div>
+                    <div class="header-text-sub">Online</div>
+                </div>
+            </div>
+
+            <!-- MESSAGES -->
+            <div id="chat-container" class="card-body">
+                <div class="message-row bot">
+                    <div class="bubble bot">
+                        Hi! 😊<br>
+                        මට Sinhala / English mix එකෙන් type karanna puluwan.<br><br>
+                        • PHP / Python / Flask help<br>
+                        • Japanese homework<br>
+                        • Daily life questions<br><br>
+                        <span style="opacity: 0.9;">
+                            “Hi bot, mama PHP project ekak hadanne…”<br>
+                            වගේ එකක් try karanna.
+                        </span>
+                        <div class="bubble-meta">
+                            <span>Bot</span>
+                            <span>·</span>
+                            <span>Just now</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Typing indicator -->
+            <div id="typing" class="typing-indicator">
+                <div class="message-row bot">
+                    <div class="bubble bot">
+                        <div class="typing-dots">
+                            <span></span><span></span><span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- INPUT -->
+            <div class="card-footer">
+                <form id="chat-form">
+                    <div class="input-row">
+                        <div class="text-area-wrap">
+                            <textarea
+                                id="user-input"
+                                placeholder="Type your question here… (ex: 'mama hadapu chat bot design eka update karanna one')"
+                            ></textarea>
+                            <div class="helper-text">Press Enter to send · Shift+Enter = new line</div>
+                        </div>
+                        <button id="send-btn" type="submit">
+                            <span class="send-icon">➤</span>
+                            Send
+                        </button>
+                    </div>
+                </form>
+            </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById("chat-form");
+        const input = document.getElementById("user-input");
+        const chatContainer = document.getElementById("chat-container");
+        const typing = document.getElementById("typing");
+        const sendBtn = document.getElementById("send-btn");
+
+        // Save note to localStorage
+        function saveNote(text) {
+            let savedNotes = JSON.parse(localStorage.getItem("notes") || "[]");
+            savedNotes.push({
+                text: text,
+                reminderTime: null
+            });
+            localStorage.setItem("notes", JSON.stringify(savedNotes));
+            alert("Saved to Notes ✅");
+        }
+
+        function appendMessage(role, text) {
+            const row = document.createElement("div");
+            row.classList.add("message-row", role === "user" ? "user" : "bot");
+
+            const bubble = document.createElement("div");
+            bubble.classList.add("bubble", role === "user" ? "user" : "bot");
+            bubble.textContent = text;
+
+            const meta = document.createElement("div");
+            meta.classList.add("bubble-meta");
+
+            const whoSpan = document.createElement("span");
+            whoSpan.textContent = role === "user" ? "You" : "Bot";
+            meta.appendChild(whoSpan);
+
+            if (role === "bot") {
+                const dotSpan = document.createElement("span");
+                dotSpan.textContent = "·";
+                meta.appendChild(dotSpan);
+
+                const saveSpan = document.createElement("span");
+                saveSpan.textContent = "Save to notes";
+                saveSpan.style.cursor = "pointer";
+                saveSpan.style.textDecoration = "underline";
+
+                saveSpan.onclick = () => {
+                    saveNote(text);
+                };
+
+                meta.appendChild(saveSpan);
+            }
+
+            bubble.appendChild(meta);
+            row.appendChild(bubble);
+            chatContainer.appendChild(row);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        async function sendMessage(message) {
+            appendMessage("user", message);
+            input.value = "";
+
+            typing.style.display = "flex";
+            sendBtn.disabled = true;
+
+            try {
+                const res = await fetch("/api/chat", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ message })
+                });
+
+                const data = await res.json();
+                typing.style.display = "none";
+                sendBtn.disabled = false;
+
+                if (data.reply) {
+                    appendMessage("bot", data.reply);
+                } else {
+                    appendMessage("bot", "Sorry, there was an error talking to the AI 😢");
+                    console.error(data);
+                }
+            } catch (err) {
+                typing.style.display = "none";
+                sendBtn.disabled = false;
+                appendMessage("bot", "Network error occurred. Please try again.");
+                console.error(err);
+            }
+        }      
+               if ("serviceWorker" in navigator) {
+                  window.addEventListener("load", () => {
+                  navigator.serviceWorker
+                   .register("/sw.js")
+                   .catch((err) => console.error("SW registration failed:", err));
+                });
+              }
+
+        form.addEventListener("submit", (e) => {
+            e.preventDefault();
+            const msg = input.value.trim();
+            if (!msg) return;
+            sendMessage(msg);
+        });
+
+        // Enter = send, Shift+Enter = new line
+        input.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                form.dispatchEvent(new Event("submit"));
+            }
+        });
+
+         
+    </script>
+</body>
+</html>

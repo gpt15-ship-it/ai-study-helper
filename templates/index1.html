@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Saved Notes / Reminders</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="manifest" href="/manifest.json">
+     <meta name="theme-color" content="#020617">
+     <meta name="apple-mobile-web-app-capable" content="yes">
+     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+     <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: "Poppins", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+            background: radial-gradient(circle at top, #1f2933 0, #020617 45%, #000000 100%);
+            color: #e5e7eb;
+            min-height: 100vh;
+        }
+
+        .page {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 24px 16px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .brand-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .nav-pill {
+            padding: 6px 14px;
+            border-radius: 999px;
+            border: 1px solid rgba(168, 85, 247, 0.7);
+            text-decoration: none;
+            font-size: 0.9rem;
+            color: #a855f7;
+            background: rgba(15, 23, 42, 0.9);
+            box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.7);
+            transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.1s;
+        }
+
+        .nav-pill:hover {
+            background: rgba(88, 28, 135, 0.9);
+            color: #f9fafb;
+            border-color: rgba(233, 213, 255, 0.8);
+            transform: translateY(-1px);
+        }
+
+        .card {
+            background: rgba(15, 23, 42, 0.9);
+            border-radius: 24px;
+            padding: 20px;
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            backdrop-filter: blur(18px);
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 120px);
+        }
+
+        .card-header {
+            margin-bottom: 12px;
+        }
+
+        .card-header h2 {
+            margin: 0;
+            font-size: 1.2rem;
+        }
+
+        .card-header p {
+            margin: 4px 0 0;
+            font-size: 0.85rem;
+            color: #9ca3af;
+        }
+
+        .notes-container {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .notes-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .notes-container::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.7);
+            border-radius: 999px;
+        }
+
+        .note-box {
+            background: rgba(15, 23, 42, 0.95);
+            border-radius: 14px;
+            margin-bottom: 10px;
+            padding: 10px 12px;
+            border-left: 4px solid #a855f7;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+            font-size: 0.9rem;
+        }
+
+        .note-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .note-box span[contenteditable] {
+            display: inline-block;
+            width: 100%;
+            outline: none;
+            border-bottom: 1px dotted rgba(148, 163, 184, 0.6);
+        }
+
+        .note-actions {
+            display: flex;
+            gap: 6px;
+            margin-top: 6px;
+            font-size: 0.8rem;
+        }
+
+        .note-actions button {
+            background: none;
+            border: 1px solid rgba(148, 163, 184, 0.5);
+            border-radius: 999px;
+            color: #e5e7eb;
+            padding: 2px 8px;
+            cursor: pointer;
+            font-size: 0.75rem;
+        }
+
+        .note-actions button:hover {
+            background: rgba(88, 28, 135, 0.9);
+            border-color: rgba(233, 213, 255, 0.8);
+        }
+
+        .reminder-text {
+            font-size: 0.75rem;
+            color: #9ca3af;
+            margin-top: 4px;
+        }
+
+        .footer-hint {
+            font-size: 0.75rem;
+            color: #9ca3af;
+            margin-top: 8px;
+        }
+
+        @media (max-width: 640px) {
+            .card {
+                height: 90vh;
+                padding: 16px 14px;
+                border-radius: 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <div class="top-bar">
+            <div class="brand-title">Saved Notes / Reminders</div>
+            <a href="/" class="nav-pill">← Back to Chat</a>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2>Your saved notes</h2>
+                <p>Notes are stored in this browser only. You can edit and set reminders.</p>
+            </div>
+
+            <div id="notesContainer" class="notes-container"></div>
+
+            <div class="footer-hint">
+                💡 Tip: Reminders work while this page is open. Keep this tab open in the background.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let notesContainer = document.getElementById('notesContainer');
+
+        // Load notes and show in page
+        function loadNotes() {
+            let savedNotes = JSON.parse(localStorage.getItem('notes') || '[]');
+            notesContainer.innerHTML = '';
+
+            savedNotes.forEach((note, index) => {
+                let noteText = typeof note === 'string' ? note : (note.text || '');
+                let reminderTime = (typeof note === 'object' && note.reminderTime) ? note.reminderTime : null;
+
+                let div = document.createElement('div');
+                div.className = 'note-box';
+                div.innerHTML = `
+                    <div class="note-top">
+                        <span contenteditable="true" data-index="${index}">${noteText}</span>
+                    </div>
+                    <div class="note-actions">
+                        <button onclick="setReminder(${index})">⏰ Reminder</button>
+                        <button onclick="deleteNote(${index})">🗑 Delete</button>
+                    </div>
+                    <div class="reminder-text">
+                        ${reminderTime ? 'Reminder: ' + reminderTime : 'No reminder set'}
+                    </div>
+                `;
+                notesContainer.appendChild(div);
+            });
+        }
+
+        // Save edited notes text back to localStorage
+        function saveAllNotes() {
+            let spans = document.querySelectorAll('.note-box span[contenteditable]');
+            let oldNotes = JSON.parse(localStorage.getItem('notes') || '[]');
+            let newNotes = [];
+
+            spans.forEach((span, idx) => {
+                let old = oldNotes[idx];
+                let reminderTime = (typeof old === 'object' && old.reminderTime) ? old.reminderTime : null;
+
+                newNotes.push({
+                    text: span.textContent,
+                    reminderTime: reminderTime
+                });
+            });
+
+            localStorage.setItem('notes', JSON.stringify(newNotes));
+        }
+
+        // Delete note
+        function deleteNote(index) {
+            let savedNotes = JSON.parse(localStorage.getItem('notes') || '[]');
+            savedNotes.splice(index, 1);
+            localStorage.setItem('notes', JSON.stringify(savedNotes));
+            loadNotes();
+        }
+
+        // Set reminder time for one note
+        function setReminder(index) {
+            let savedNotes = JSON.parse(localStorage.getItem('notes') || '[]');
+            let note = savedNotes[index];
+            if (!note) return;
+
+            let noteText = typeof note === 'string' ? note : (note.text || '');
+            let current = (typeof note === 'object' && note.reminderTime) ? note.reminderTime : '';
+
+            let timeStr = prompt("Enter reminder time (YYYY-MM-DD HH:MM)", current);
+            if (!timeStr) return;
+
+            let obj = (typeof note === 'object') ? note : { text: noteText };
+            obj.reminderTime = timeStr;
+            savedNotes[index] = obj;
+
+            localStorage.setItem('notes', JSON.stringify(savedNotes));
+            loadNotes();
+        }
+
+        // Check reminders every 30 seconds
+        function checkReminders() {
+            if (!("Notification" in window)) {
+                return;
+            }
+
+            if (Notification.permission === "default") {
+                Notification.requestPermission();
+            }
+
+            let savedNotes = JSON.parse(localStorage.getItem('notes') || '[]');
+            let changed = false;
+            let now = new Date();
+
+            savedNotes.forEach((note) => {
+                if (typeof note !== 'object' || !note.reminderTime) return;
+
+                let time = new Date(note.reminderTime.replace(' ', 'T'));
+                if (!isNaN(time) && time <= now) {
+                    if (Notification.permission === "granted") {
+                        new Notification("Reminder", {
+                            body: note.text || "You have a reminder."
+                        });
+                    } else {
+                        alert("Reminder: " + (note.text || ""));
+                    }
+
+                    note.reminderTime = null;
+                    changed = true;
+                }
+            });
+
+            if (changed) {
+                localStorage.setItem('notes', JSON.stringify(savedNotes));
+                loadNotes();
+            }
+        }
+
+        window.addEventListener('beforeunload', () => {
+            saveAllNotes();
+        });
+
+        loadNotes();
+        setInterval(checkReminders, 30000);
+        
+        
+    </script>
+</body>
+</html>
