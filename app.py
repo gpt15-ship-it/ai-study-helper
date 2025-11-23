@@ -1,84 +1,65 @@
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
-import openai
+from openai import OpenAI
 import os
-from dotenv import load_dotenv
 
-load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
-
-app = Flask(__name__, static_folder="static")
+# Flask app
+app = Flask(__name__, static_folder="static", template_folder="templates")
 CORS(app)
 
-@app.route("/manifest.json")
-def manifest():
-    return app.send_static_file("manifest.json")
+# OpenAI client (OPENAI_API_KEY env var eken automaticma gannawa)
+client = OpenAI()
 
-@app.route("/sw.js")
-def service_worker():
-    return app.send_static_file("sw.js")
+# ---------- Routes ----------
 
-@app.route('/')
+@app.route("/")
 def home():
-    return render_template('index.html')
+    # main chat page
+    return render_template("index.html")
+
 
 @app.route("/notes")
 def notes_page():
+    # saved notes / reminders page
     return render_template("index1.html")
 
-# -------------------------
-# CHAT API
-# -------------------------
-@app.route('/api/chat', methods=['POST'])
+
+@app.route("/api/chat", methods=["POST"])
 def chat():
-    data = request.get_json()
-    message = data.get('message', '')
+    """Front-end eken wena chat request handle karana route eka"""
+    data = request.get_json(force=True) or {}
+    message = (data.get("message") or "").strip()
+
+    if not message:
+        return jsonify({"error": "Empty message"}), 400
+
     try:
-        response = openai.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": message}],
-            max_tokens=150,
+        chat_completion = client.chat.completions.create(
+            model=os.getenv("OPENAI_CHAT_MODEL", "gpt-3.5-turbo"),
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a friendly study helper bot for a student in Japan. "
+                        "Answer in a Sinhala + English mix, simple and supportive."
+                    ),
+                },
+                {"role": "user", "content": message},
+            ],
+            max_tokens=300,
             temperature=0.7,
         )
-        reply = response.choices[0].message.content
-        return jsonify({'reply': reply})
-    except Exception as e:
-        print("OpenAI Chat Error:", e)
-        return jsonify({'error': 'Chat API request failed', 'details': str(e)}), 500
 
-
-# -------------------------
-# NEW: IMAGE GENERATE API
-# -------------------------
-@app.route('/api/image', methods=['POST'])
-def generate_image():
-    data = request.get_json()
-    prompt = data.get("prompt", "")
-
-    if not prompt:
-        return jsonify({'error': 'No prompt provided'}), 400
-
-    try:
-        img_response = openai.images.generate(
-            model="gpt-image-1",
-            prompt=prompt,
-            size="1024x1024"
-        )
-
-        # base64 image string
-        b64_img = img_response.data[0].b64_json
-
-        return jsonify({
-            "image": "data:image/png;base64," + b64_img
-        })
+        reply_text = chat_completion.choices[0].message.content
+        return jsonify({"reply": reply_text})
 
     except Exception as e:
-        print("Image API Error:", e)
-        return jsonify({
-            'error': 'Image generation failed',
-            'details': str(e)
-        }), 500
+        # Render logs walata error eka print wenna
+        print(f"/api/chat error: {e}", flush=True)
+        return jsonify({"error": "Server error", "details": str(e)}), 500
 
+
+# ---------- Local run ----------
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
