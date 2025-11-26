@@ -36,15 +36,29 @@ def chat():
     try:
         chat_completion = client.chat.completions.create(
             model=os.getenv("OPENAI_CHAT_MODEL", "gpt-3.5-turbo"),
-            messages=[
+                        messages=[
                 {
                     "role": "system",
                     "content": (
                         "You are a friendly study helper bot for a student in Japan. "
-                        "Answer in a Sinhala + English mix, simple and supportive."
+                        "First detect the main language of the user's message "
+                        "(Sinhala, English, or Japanese). "
+                        "Then follow these strict rules:\n"
+                        "- If the user writes in Sinhala → reply ONLY in Sinhala. "
+                        "Do NOT mix English sentences, except for short technical terms in parentheses if really necessary.\n"
+                        "- If the user writes in English → reply ONLY in English. "
+                        "Do NOT include any Sinhala or Japanese text unless the user explicitly asks for translation.\n"
+                        "- If the user writes in Japanese → reply ONLY in simple Japanese. "
+                        "Do NOT mix Sinhala or long English sentences.\n"
+                        "If the user mixes languages in one message, choose the language that appears the most "
+                        "and reply only in that language."
                     ),
                 },
-                {"role": "user", "content": message},
+
+                {
+                    "role": "user",
+                    "content": message,
+                },
             ],
             max_tokens=300,
             temperature=0.7,
