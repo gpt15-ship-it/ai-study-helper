@@ -4,11 +4,12 @@
     <meta charset="UTF-8" />
     <title>Saved Notes / Reminders</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- PWA bits -->
     <link rel="manifest" href="/manifest.json">
-     <meta name="theme-color" content="#020617">
-     <meta name="apple-mobile-web-app-capable" content="yes">
-     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-     <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+    <meta name="theme-color" content="#020617">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
 
     <style>
         * {
@@ -18,19 +19,16 @@
         body {
             margin: 0;
             padding: 0;
-            font-family: "Poppins", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Poppins", sans-serif;
             background: radial-gradient(circle at top, #1f2933 0, #020617 45%, #000000 100%);
             color: #e5e7eb;
             min-height: 100vh;
         }
 
         .page {
-            max-width: 1100px;
+            max-width: 700px;
             margin: 0 auto;
             padding: 24px 16px 24px;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
         }
 
         .top-bar {
@@ -38,6 +36,7 @@
             align-items: center;
             justify-content: space-between;
             gap: 12px;
+            margin-bottom: 16px;
         }
 
         .brand-title {
@@ -81,12 +80,12 @@
         }
 
         .card-header h2 {
-            margin: 0;
-            font-size: 1.2rem;
+            margin: 0 0 4px;
+            font-size: 18px;
         }
 
         .card-header p {
-            margin: 4px 0 0;
+            margin: 0;
             font-size: 0.85rem;
             color: #9ca3af;
         }
@@ -104,6 +103,13 @@
         .notes-container::-webkit-scrollbar-thumb {
             background: rgba(148, 163, 184, 0.7);
             border-radius: 999px;
+        }
+
+        .empty-state {
+            text-align: center;
+            margin-top: 40px;
+            color: #9ca3af;
+            font-size: 0.9rem;
         }
 
         .note-box {
@@ -159,16 +165,15 @@
         }
 
         .footer-hint {
+            margin-top: 8px;
             font-size: 0.75rem;
             color: #9ca3af;
-            margin-top: 8px;
         }
 
         @media (max-width: 640px) {
             .card {
-                height: 90vh;
+                height: 88vh;
                 padding: 16px 14px;
-                border-radius: 18px;
             }
         }
     </style>
@@ -189,18 +194,28 @@
             <div id="notesContainer" class="notes-container"></div>
 
             <div class="footer-hint">
-                💡 Tip: Reminders work while this page is open. Keep this tab open in the background.
+                ✏ Double-click or tap into the text to edit.  
+                ⏰ Use “Reminder” to set a time (simple text-based reminder).
             </div>
         </div>
     </div>
 
     <script>
-        let notesContainer = document.getElementById('notesContainer');
+        const notesContainer = document.getElementById('notesContainer');
 
-        // Load notes and show in page
+        // Load notes from localStorage
         function loadNotes() {
             let savedNotes = JSON.parse(localStorage.getItem('notes') || '[]');
             notesContainer.innerHTML = '';
+
+            if (savedNotes.length === 0) {
+                notesContainer.innerHTML = `
+                    <div class="empty-state">
+                        No notes yet. Go back to chat and click “Save to notes” under a bot reply.
+                    </div>
+                `;
+                return;
+            }
 
             savedNotes.forEach((note, index) => {
                 let noteText = typeof note === 'string' ? note : (note.text || '');
@@ -230,7 +245,8 @@
             let oldNotes = JSON.parse(localStorage.getItem('notes') || '[]');
             let newNotes = [];
 
-            spans.forEach((span, idx) => {
+            spans.forEach((span, i) => {
+                let idx = parseInt(span.getAttribute('data-index'), 10);
                 let old = oldNotes[idx];
                 let reminderTime = (typeof old === 'object' && old.reminderTime) ? old.reminderTime : null;
 
@@ -271,42 +287,24 @@
             loadNotes();
         }
 
-        // Check reminders every 30 seconds
+        // Check reminders every 30 seconds (simple alert)
         function checkReminders() {
-            if (!("Notification" in window)) {
-                return;
-            }
-
-            if (Notification.permission === "default") {
-                Notification.requestPermission();
-            }
-
             let savedNotes = JSON.parse(localStorage.getItem('notes') || '[]');
-            let changed = false;
+            if (!savedNotes.length) return;
+
             let now = new Date();
+            let nowStr = now.toISOString().slice(0, 16).replace('T', ' '); // YYYY-MM-DD HH:MM
 
-            savedNotes.forEach((note) => {
-                if (typeof note !== 'object' || !note.reminderTime) return;
-
-                let time = new Date(note.reminderTime.replace(' ', 'T'));
-                if (!isNaN(time) && time <= now) {
-                    if (Notification.permission === "granted") {
-                        new Notification("Reminder", {
-                            body: note.text || "You have a reminder."
-                        });
-                    } else {
-                        alert("Reminder: " + (note.text || ""));
+            savedNotes.forEach((note, i) => {
+                if (typeof note === 'object' && note.reminderTime && !note.done) {
+                    if (note.reminderTime <= nowStr) {
+                        alert('Reminder: ' + (note.text || 'Note #' + (i + 1)));
+                        note.done = true;
                     }
-
-                    note.reminderTime = null;
-                    changed = true;
                 }
             });
 
-            if (changed) {
-                localStorage.setItem('notes', JSON.stringify(savedNotes));
-                loadNotes();
-            }
+            localStorage.setItem('notes', JSON.stringify(savedNotes));
         }
 
         window.addEventListener('beforeunload', () => {
@@ -315,8 +313,6 @@
 
         loadNotes();
         setInterval(checkReminders, 30000);
-        
-        
     </script>
 </body>
 </html>
